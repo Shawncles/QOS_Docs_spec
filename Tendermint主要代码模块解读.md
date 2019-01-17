@@ -1,4 +1,4 @@
-#Tendermint 架构
+# Tendermint 架构
 
 ####Tendermint共识过程架构图
 
