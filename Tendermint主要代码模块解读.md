@@ -1,10 +1,10 @@
-#Tendermint 架构
+# Tendermint 架构
 
-####Tendermint共识过程架构图
+#### Tendermint共识过程架构图
 
 ![Tendermint共识过程](https://cdn-images-1.medium.com/max/1600/1*7yVAe1NvayAd6WDhXoqKSg.png 'Tendermint 共识过程')
 
-####共识过程：
+#### 共识过程：
 >1、用户提交交易
 >
 >2、对app发送检查交易请求，通过检查后加入mempool
@@ -34,7 +34,7 @@
 
 
 
-##1、用户控制
+## 1、用户控制
 
 ### 1.1 tendermint init
 
