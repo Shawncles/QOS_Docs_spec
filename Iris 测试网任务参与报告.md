@@ -64,7 +64,7 @@
 
 上述命令使得节点提交通过了 proposal-id=1 的提案
 
-tx hash: DA9969A2053965BE3D46970D0A25B022EA4C64E90A83AAF674BBB6AD33FE7572
+`tx hash: 63B731999EBA60356F029BE443332C60C542AAA427F4CE168C39DA36F04518CF`
 
 
 #### 3.2、升级软件
@@ -72,7 +72,6 @@ tx hash: DA9969A2053965BE3D46970D0A25B022EA4C64E90A83AAF674BBB6AD33FE7572
 ```
 wget https://github.com/irisnet/irishub/releases/download/v0.10.2/irishub_0.10.2_linux_amd64.zip
 unzip -d /usr/local/bin/ ./irishub_0.10.2_linux_amd64.zip
-
 ```
 
 #### 3.3、委托，并取回委托收益
@@ -98,14 +97,21 @@ unzip -d /usr/local/bin/ ./irishub_0.10.2_linux_amd64.zip
 ## 4、测试网第四阶段
 
 #### 4.1、投票通过共识停止systemhalt提案
-`iriscli gov vote --chain-id=fuxi-8000 --from rock --fee 4iris --proposal-id 1 --option=Yes memo=QOS`
+`iriscli gov vote --chain-id=fuxi-8000 --from rock --fee 4iris --proposal-id 1 --option=Yes --memo=QOS`
 
 投票结果：
 `tx hash: AF8E52D6B93FF611C2233CA3B7B53F37FE72B3C893E03EE009090CA1CC7F1CEB`
 
 #### 4.2、irishub软件升级到v0.10.3
 
+插曲：测试链在同步上遇到了问题，未采取 unsafe-reset-all ，等待 iris 开发修复，修复完成后发现自己的节点被 jail 了，于是 unjail 自己的节点
+
+`iriscli stake unjail --chain-id=fuxi-8000 --from rock --fee 4iris --memo=QOS`
 
 
+#### 4.4、委托，并取回委托收益
+委托: 
+`tx hash: 81929D86425DBD8E9AB1945F234194FF74A0A682690DD6D0BE9E52934CC04064 `
 
-
+取回：
+`tx hash: 31B084DE526405C4E0A43F00277EDE7D9B559CF8439FFF62811D3F13D022D6D3`
