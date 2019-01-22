@@ -31,7 +31,7 @@
 * P2P网络
 * RPC请求
 * 数据存储
-
+* 共识
 
 
 ## 1、用户控制
@@ -337,21 +337,20 @@ TxIndexer 对交易内容做索引，索引标签包含，tags, height, 和hash
 		|
 		|-- query range, like: tx.height>5, 使用lookForRanges 将数学语言翻译成数组，根据key（tag），匹配出交易的 hash, 调用Get 获得交易内容
 
-用户提交交易
-更新mempool
-创造新的块
-更新State（上链）
-更新索引
+* 用户提交交易
+* 更新mempool
+* 创造新的块
+* 更新State（上链）
+* 更新索引
 
-5 共识模块
-共识模块是最重要的，也是在代码框架逻辑中哥哥模块的总纲
+
+###补充内容：
+## 5、共识
+共识模块是最重要的，也是上述代码逻辑中各个模块的入口
 
 5.1 gossip
 
 
 
 
-consensus
-P2P
-mempool
 

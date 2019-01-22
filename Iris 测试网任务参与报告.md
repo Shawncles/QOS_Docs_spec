@@ -82,3 +82,30 @@ unzip -d /usr/local/bin/ ./irishub_0.10.2_linux_amd64.zip
 取回：
 `tx hash: 09DD5BE933EE548B352444277EC28F1FC29788CF581B7694C1D639DEDCA8E25B`
 
+#### 3.4、测试第三类软件升级
+
+#### 3.4.1、更新iris版本
+下载编译 patch 版本软件，然后重启节点
+
+[iris各个版本](https://github.com/irisnet/irishub/releases)
+
+#### 3.4.2、委托，并取回委托收益
+
+
+
+
+
+## 4、测试网第四阶段
+
+#### 4.1、投票通过共识停止systemhalt提案
+`iriscli gov vote --chain-id=fuxi-8000 --from rock --fee 4iris --proposal-id 1 --option=Yes memo=QOS`
+
+投票结果：
+`tx hash: AF8E52D6B93FF611C2233CA3B7B53F37FE72B3C893E03EE009090CA1CC7F1CEB`
+
+#### 4.2、irishub软件升级到v0.10.3
+
+
+
+
+
