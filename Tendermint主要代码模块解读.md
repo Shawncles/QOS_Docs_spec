@@ -31,7 +31,7 @@
 * P2P网络
 * RPC请求
 * 数据存储
-* 共识
+
 
 
 ## 1、用户控制
@@ -337,20 +337,142 @@ TxIndexer 对交易内容做索引，索引标签包含，tags, height, 和hash
 		|
 		|-- query range, like: tx.height>5, 使用lookForRanges 将数学语言翻译成数组，根据key（tag），匹配出交易的 hash, 调用Get 获得交易内容
 
-* 用户提交交易
-* 更新mempool
-* 创造新的块
-* 更新State（上链）
-* 更新索引
+用户提交交易
+更新mempool
+创造新的块
+更新State（上链）
+更新索引
+
+---
+
+## 5 共识模块
+
+PeerState
+
+	SetHasProposal
+	SetHasProposalBlockPart
+	SetHasVote
+	PickSendVote
+	ApplyNewRoundStepMessage
+	ApplyNewValidBlockMessage
+	ApplyProposalPOLMessage
+	ApplyHasVoteMessage
+	ApplyVoteSetBitsMessage
+
+ConsensusState
+	
+	readReplayMessage 
+	catchupReplay
+	查询函数：GetState GetRoundState GetValidators
+	SetProposal
+	AddProposalBlockPart
+	SetProposalAndBlock
+	updateToState
+	receiveRoutine
+	
+	handleMsg
+	handleTimeout
+	enterNewRound
+	enterPropose
+	
+	createProposalBlock
+	enterPrevote
+	enterPrecommit
+	enterCommit
+	finalizeCommit
+
+ConsensusReactor
+	
+	gossip
+	gossipDataRoutine
+	gossipDataForCatchup
+	gossipVotesRoutine
+	gossipVotesForHeight
+	
+	broadcast
+	broadcastNewRoundStepMessage
+	broadcastNewValidBlockMessage
+	broadcastHasVoteMessage
+	
+	receive 多路复用
+	
+Handshaker
+
+	Handshake	
+	ReplayBlocks
+	
+mockProxyApp
+
+	DeliverTx
+	EndBlock
+	Commit
+
+ConsensusState
 
 
-###补充内容：
-## 5、共识
-共识模块是最重要的，也是上述代码逻辑中各个模块的入口
+	
 
-5.1 gossip
+#### 5.1 Receive
+receive 函数是上述操作的入口，也是各 peer 间通信入口，输入输出和涉及到的主要模块结构如下：
+
+	Receive(chID byte, src p2p.Peer, msgBytes []byte)
+		|
+		|-- switch chID
+				|
+				|-- StateChannel：NewRound、NewValidBlock、Vote、23Vote
+				|		|-- ApplyNewRoundStepMessage // 对 PRS 进行高度，round等参数的判断，如果是新的高度，那就更新PRS
+				|		|-- ApplyNewValidBlockMessage // 把msg中包含的block信息写入PRS
+				|		|-- ApplyHasVoteMessage // 检查 PRS 在指定 高度，轮次，msg类型下是否存在该 Vote 信息
+				|		|-- SetPeerMaj23 //获取指定轮次和签名类型的 HeightVoteSet，检查peerID 和 BlockID，更新 blockKey中 BlockVotes
+				|		|-- src.TrySend	// 根据 msg 类型，将其 vote_msg 发送给其他参与者
+				|
+				|-- DataChannel: Proposal
+				|			|-- SetHasProposal // 将 proposal 的信息更新到 PRS 中
+				|			|-- ApplyProposalPOLMessage // 将 proposalPOL 的信息更新到PRS中
+				|			|-- SetHasProposalBlockPart // 将 ProposalBlock 的信息更新到 PRS 中，把 msg 写到 cS.peerMsgQueue 中
+				|			
+			 	|-- VoteChannel：检查 consensus state 和 peer state 的高度，更新numValidator 参数，在新的状态上写入 msg.Vote 中新增的信息，把msg 追加到cs.peerMsgQueue 中
+				|
+				|-- VoteSetBitsChannel //检查msg 和consensus state的高度，相同则根据 msg 中指定的 Round 和 blockID 获得 vote 内容，更新到PS（peer state）中
+
+
+#### 5.2 调用 Receive 的函数
+	
+sendNewRoundStepMessage
+
+	//peer.Send(StateChannel, cdc.MustMarshalBinaryBare(nrsMsg)) 
+	//把 new round step message 发送到所有的 peer
+	
+queryMaj23Routine
+
+peerStatsRoutine
+
+Receive
+
+
+
+replay 
+ReplayBlocks
+Handshaker
+
+mockProxyApp
+DeliverTx
+EndBlock
+Commit
+
+ConsensusState
 
 
 
 
+补充：
+
+consensus
+P2P：
+gossip
+
+
+ConsensusState
+
+mempool
 

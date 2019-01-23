@@ -76,20 +76,12 @@ unzip -d /usr/local/bin/ ./irishub_0.10.2_linux_amd64.zip
 
 #### 3.3、委托，并取回委托收益
 委托: 
-`tx hash: CE17F4EB6AB482BC9D3A6C1A1D2BEF3BEFB757A7BCB4D30E1DEAFE8F0BDC8385`
+`tx hash: 47593FC8A1AC9B27A30712FC1676755AC4105EE7B350D4AE5D88EE186AFDC151`
 
 取回：
-`tx hash: 09DD5BE933EE548B352444277EC28F1FC29788CF581B7694C1D639DEDCA8E25B`
+`tx hash: C592C15300C01A476AEB9BB7101F584B7E3E693FF03DBDF195C89C362610D74D`
 
-#### 3.4、测试第三类软件升级
-
-#### 3.4.1、更新iris版本
-下载编译 patch 版本软件，然后重启节点
-
-[iris各个版本](https://github.com/irisnet/irishub/releases)
-
-#### 3.4.2、委托，并取回委托收益
-
+-----
 
 
 
