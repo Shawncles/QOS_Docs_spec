@@ -347,74 +347,124 @@ TxIndexer 对交易内容做索引，索引标签包含，tags, height, 和hash
 
 ## 5 共识模块
 
-PeerState
+#### 5.1、ConsensusState // 处理 vote、proposal、达成共识、确认出块，触发事件 
 
-	SetHasProposal
-	SetHasProposalBlockPart
+其中： RS // 内部状态机，应对peer收发信息、确认状态
+
+	回执函数：
+	readReplayMessage //把 msg 的信息logger出来
+	catchupReplay // 确认 csHeight 对应的同步状态，把信息写到 cs.Log 中
+	
+	查询函数：GetState GetRoundState GetValidators // 针对性的返回cs中指定的信息
+	
+	写入消息队列：
+	SetProposal // 把 proposal 写入 msg queue 中
+	AddProposalBlockPart // 
+	SetProposalAndBlock
+	
+	updateToState // 更新 ConsensusState 增加 state 高度，重置cs中的部分信息，开启下一个step
+	
+	receiveRoutine // 从各种 msgQueue 中读取数据执行相应的处理
+	调用了比如： 
+		|--	handleMsg // 根据 msg 的类型，调用函数更新 cs
+		|-- handleTimeout // timeoutInfo中的Step，选择再次进入共识的某个阶段
+				|-- enterNewRound
+				|-- enterPropose
+				|-- enterPrevote
+				|-- enterPrecommit
+	
+	共识
+	SignVote // vote 结构体中包含 Height、Round、Timestamp、BlockID、ValidatorAddress、Address、ValidatorIndex、Signature 这些字段
+		|-- PV file，// 核对 PVfile 中和当前vote中包含的信息的一致性，比如高度，round 之类的。PrivValidator // 用来防止双签
+		|-- vote.SignBytes(chainID) 获得sign data
+		|-- 使用 ed25519 sign 签名
+				
+	一轮共识结束共识出块
+	createProposalBlock
+		|-- 读取 ConsensusParams 中各个参数
+		|-- cs.mempool.ReapMaxBytesMaxGas //从mempool 中取出tx
+		|-- 获得当前验证节点的信息
+		|-- MakeBlock //创建 block
+	
+	确认出块的过程中：
+	enterCommit // +2/3 precommits for block
+		|-- Votes.Precommits(commitRound).TwoThirdsMajority()
+		|-- cs.LockedBlock 写入 cs.ProposalBlock
+		
+	finalizeCommit
+		|-- blockStore.SaveBlock(block, blockParts, seenCommit)
+		|-- ApplyBlock //Execute and commit the block, update and save the state, and update the mempool
+		
+#### 5.2、PeerState
+
+	更新信息：
+	SetHasProposal // 在 PRS 中写入 proposal 信息
+	SetHasProposalBlockPart // 
 	SetHasVote
-	PickSendVote
-	ApplyNewRoundStepMessage
+	
+	PickSendVote // 执行发送vote 的主体 CS 
+	
+	更新 state 状态，把结构体数据写入 queue 或者重制结构体
+	ApplyNewRoundStepMessage /
 	ApplyNewValidBlockMessage
 	ApplyProposalPOLMessage
 	ApplyHasVoteMessage
 	ApplyVoteSetBitsMessage
 
-ConsensusState
-	
-	readReplayMessage 
-	catchupReplay
-	查询函数：GetState GetRoundState GetValidators
-	SetProposal
-	AddProposalBlockPart
-	SetProposalAndBlock
-	updateToState
-	receiveRoutine
-	
-	handleMsg
-	handleTimeout
-	enterNewRound
-	enterPropose
-	
-	createProposalBlock
-	enterPrevote
-	enterPrecommit
-	enterCommit
-	finalizeCommit
+其他的数据结构：
 
-ConsensusReactor
-	
-	gossip
-	gossipDataRoutine
-	gossipDataForCatchup
-	gossipVotesRoutine
-	gossipVotesForHeight
-	
-	broadcast
-	broadcastNewRoundStepMessage
-	broadcastNewValidBlockMessage
-	broadcastHasVoteMessage
-	
-	receive 多路复用
-	
-Handshaker
+* RS // defines the internal consensus state. // 保存自身维护的共识信息
 
-	Handshake	
-	ReplayBlocks
-	
-mockProxyApp
-
-	DeliverTx
-	EndBlock
-	Commit
-
-ConsensusState
+* PRS // contains the known state of a peer. // 对 peer 的状态抽象，暂时的，复用的数据结构，保存了自身维护的peer在共识各个阶段的信息
 
 
+
+
+#### 5.3、ConsensusReactor
+
+* rs, prs, ps, peer 的主要关系
+
+* rs： consensus state 包含 高度、round、block、vote、proposal等等需要共识的内容
+
+* prs： peer round state 包含 高度、round、proposal、provote、procommit、commit相关的信息
+
+* ps： 包含上述两项的数据结构
+
+* peer：p2p的一个节点，有节点id之类的信息
+
+```
+
+	* gossip
+		gossipDataRoutine
+				|-- DataChannel
+						|-- BlockPartMessage H R P / H R S
+				ProposalBlockPartsHeader？
+				|-- GetXXState //获得round state / peer round state
+				|-- SetHasProposalBlockPart // 把 prs 的信息更新到 ps 中
+				
+				|-- gossipDataForCatchup // 检查自己的同步情况，有落后就跟上
+					
+				prs.Height < rs.Height？// 检查 prs 和 rc 的高度
+				|-- gossipDataForCatchup
+							|-- blockMeta := conS.blockStore.LoadBlockMeta(prs.Height) 根据 prs 的高度，从cs 中逐个读取
+							|—- peer.Send(DataChannel, msg) // 发送 block 数据
+							|-- ps.SetHasProposalBlockPart(prs.Height, prs.Round, index) //更新本地的 peer state
+							
+		gossipVotesRoutine //同步 vote 信息
+				|-- gossipVotesForHeight // 这个函数中会根据 prs 中各变量的状态，选择发送某种 vote set
+							|-- PickSendVote // 执行发送vote 的主体
+										|-- ps.peer.Send(VoteChannel, msg) // cdc编码后把msg发送到router的VoteChannel通道上
+										|-- ps.SetHasVote(vote) //更新 ps 数据
 	
-
-#### 5.1 Receive
-receive 函数是上述操作的入口，也是各 peer 间通信入口，输入输出和涉及到的主要模块结构如下：
-
+	* broadcast
+		broadcastNewRoundStepMessage
+				|-- makeRoundStepMessage //返回 round step 数据结构
+				|-- Broadcast(StateChannel, nrsMsg) //编码后发送到 statechannel
+				
+		broadcastNewValidBlockMessage
+		broadcastHasVoteMessage
+	
+	* receive //receive 函数是上述操作的数据入口，也是各 peer 间通信入口，输入输出和涉及到的主要模块结构如下：
 	Receive(chID byte, src p2p.Peer, msgBytes []byte)
 		|
 		|-- switch chID
@@ -434,45 +484,28 @@ receive 函数是上述操作的入口，也是各 peer 间通信入口，输入
 			 	|-- VoteChannel：检查 consensus state 和 peer state 的高度，更新numValidator 参数，在新的状态上写入 msg.Vote 中新增的信息，把msg 追加到cs.peerMsgQueue 中
 				|
 				|-- VoteSetBitsChannel //检查msg 和consensus state的高度，相同则根据 msg 中指定的 Round 和 blockID 获得 vote 内容，更新到PS（peer state）中
+```
 
+#### 5.4、和 App 的交互
+##### 5.4.1 Handshaker // 和APP确认同步
 
-#### 5.2 调用 Receive 的函数
+	Handshake	
+		|-- proxyApp.Query().InfoSync // 获得app的基本信息，比如块高
+		|-- saveState(h.stateDB, h.initialState) //保存 handshaker 中的信息
+		|-- ReplayBlocks //对 proxyApp 同步 state 信息
+
+##### 5.4.2、mockProxyApp
+
+返回ABCIResponses
+
+	DeliverTx(tx []byte) // txCount ++
+		
+	EndBlock // abciResponses.EndBlock
 	
-sendNewRoundStepMessage
-
-	//peer.Send(StateChannel, cdc.MustMarshalBinaryBare(nrsMsg)) 
-	//把 new round step message 发送到所有的 peer
-	
-queryMaj23Routine
-
-peerStatsRoutine
-
-Receive
-
-
-
-replay 
-ReplayBlocks
-Handshaker
-
-mockProxyApp
-DeliverTx
-EndBlock
-Commit
-
-ConsensusState
+	Commit // ResponseCommit{Data: mock.appHash}
 
 
 
 
-补充：
 
-consensus
-P2P：
-gossip
-
-
-ConsensusState
-
-mempool
-
+uml
